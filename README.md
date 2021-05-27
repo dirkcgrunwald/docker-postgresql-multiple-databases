@@ -1,57 +1,102 @@
 # Using multiple databases with the official PostgreSQL Docker image
 
-The [official recommendation](https://hub.docker.com/_/postgres/) for creating
-multiple databases is as follows:
-
-*If you would like to do additional initialization in an image derived from
-this one, add one or more `*.sql`, `*.sql.gz`, or `*.sh` scripts under
-`/docker-entrypoint-initdb.d` (creating the directory if necessary). After the
-entrypoint calls `initdb` to create the default `postgres` user and database,
-it will run any `*.sql` files and source any `*.sh` scripts found in that
-directory to do further initialization before starting the service.*
-
 This directory contains a script to create multiple databases using that
 mechanism.
 
+The following script uses the user and password information
+in file ./users/users.txt to to create a database per user,
+set the password for that database and then initialize the postgis
+extensions.
+
+The user file should contain pairs of lines that are the user and password.
+e.g.
+```
+user1
+passwd1
+user2
+passwd2
+```
+
+
 ## Usage
 
-### By mounting a volume
+* Create a directory 'dbdata' - if you need to re-create it, note that you'll need to use sudo
+  so `sudo rm -rf ./dbdata ; mkdir dbdata` is useful
 
-Clone the repository, mount its directory as a volume into
-`/docker-entrypoint-initdb.d` and declare database names separated by commas in
-`POSTGRES_MULTIPLE_DATABASES` environment variable as follows
-(`docker-compose` syntax):
+* Run `docker-compose up`
 
-    myapp-postgresql:
-        image: postgres:9.6.2
-        volumes:
-            - ../docker-postgresql-multiple-databases:/docker-entrypoint-initdb.d
-        environment:
-            - POSTGRES_MULTIPLE_DATABASES=db1,db2
-            - POSTGRES_USER=myapp
-            - POSTGRES_PASSWORD=
+This should create two database with output similar to:
+```
+myapp-postgresql_1  | /usr/local/bin/docker-entrypoint.sh: running /docker-entrypoint-initdb.d/create-multiple-postgres-databases.sh
+myapp-postgresql_1  | dbuser is db1
+myapp-postgresql_1  | dbpasswd is db1passwd
+myapp-postgresql_1  |   Creating user and database 'db1'
+myapp-postgresql_1  | CREATE ROLE
+myapp-postgresql_1  | CREATE DATABASE
+myapp-postgresql_1  | GRANT
+myapp-postgresql_1  | CREATE EXTENSION
+myapp-postgresql_1  | CREATE EXTENSION
+myapp-postgresql_1  |  List of schemas
+myapp-postgresql_1  |    Name   | Owner 
+myapp-postgresql_1  | ----------+-------
+myapp-postgresql_1  |  public   | myapp
+myapp-postgresql_1  |  topology | myapp
+myapp-postgresql_1  | (2 rows)
+myapp-postgresql_1  | 
+myapp-postgresql_1  |              List of relations
+myapp-postgresql_1  |   Schema  |      Name       | Type  | Owner 
+myapp-postgresql_1  | ----------+-----------------+-------+-------
+myapp-postgresql_1  |  public   | spatial_ref_sys | table | myapp
+myapp-postgresql_1  |  topology | layer           | table | myapp
+myapp-postgresql_1  |  topology | topology        | table | myapp
+myapp-postgresql_1  | (3 rows)
+myapp-postgresql_1  | 
+myapp-postgresql_1  | GRANT
+myapp-postgresql_1  | dbuser is db2
+myapp-postgresql_1  | dbpasswd is someother
+myapp-postgresql_1  |   Creating user and database 'db2'
+myapp-postgresql_1  | CREATE ROLE
+myapp-postgresql_1  | CREATE DATABASE
+myapp-postgresql_1  | GRANT
+myapp-postgresql_1  | CREATE EXTENSION
+myapp-postgresql_1  | CREATE EXTENSION
+myapp-postgresql_1  |  List of schemas
+myapp-postgresql_1  |    Name   | Owner 
+myapp-postgresql_1  | ----------+-------
+myapp-postgresql_1  |  public   | myapp
+myapp-postgresql_1  |  topology | myapp
+myapp-postgresql_1  | (2 rows)
+myapp-postgresql_1  | 
+myapp-postgresql_1  |              List of relations
+myapp-postgresql_1  |   Schema  |      Name       | Type  | Owner 
+myapp-postgresql_1  | ----------+-----------------+-------+-------
+myapp-postgresql_1  |  public   | spatial_ref_sys | table | myapp
+myapp-postgresql_1  |  topology | layer           | table | myapp
+myapp-postgresql_1  |  topology | topology        | table | myapp
+myapp-postgresql_1  | (3 rows)
+myapp-postgresql_1  | 
+myapp-postgresql_1  | GRANT
+```
 
-### By building a custom image
+## Test it out
 
-Clone the repository, build and push the image to your Docker repository,
-for example for Google Private Repository do the following:
+The script `./test-db-for-gis.sh` will loop through each user and question run postgres_version() to
+insure that the postgis extensions are installed. It will also create a table that uses a `GEOM`
+type which would fail if postgis is not setup correctly.
 
-    docker build --tag=eu.gcr.io/your-project/postgres-multi-db .
-    gcloud docker -- push eu.gcr.io/your-project/postgres-multi-db
+```
+beast-18$ ./test-db-for-gis.sh
+dbuser is db1
+dbpasswd is db1passwd
+                                                                                              postgis_full_version
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ POSTGIS="3.1.1 aaf4c79" [EXTENSION] PGSQL="130" GEOS="3.7.1-CAPI-1.11.1 27a5e771" PROJ="Rel. 5.2.0, September 15th, 2018" LIBXML="2.9.4" LIBJSON="0.12.1" LIBPROTOBUF="1.3.1" WAGYU="0.5.0 (Internal)" TOPOLOGY
+(1 row)
 
-You still need to pass the `POSTGRES_MULTIPLE_DATABASES` environment variable
-to the container:
-
-    myapp-postgresql:
-        image: eu.gcr.io/your-project/postgres-multi-db
-        environment:
-            - POSTGRES_MULTIPLE_DATABASES=db1,db2
-            - POSTGRES_USER=myapp
-            - POSTGRES_PASSWORD=
-
-### Non-standard database names
-
-If you need to use non-standard database names (hyphens, uppercase letters etc), quote them in `POSTGRES_MULTIPLE_DATABASES`:
-
-        environment:
-            - POSTGRES_MULTIPLE_DATABASES="test-db-1","test-db-2"
+dbuser is db2
+dbpasswd is someother
+                                                                                              postgis_full_version
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ POSTGIS="3.1.1 aaf4c79" [EXTENSION] PGSQL="130" GEOS="3.7.1-CAPI-1.11.1 27a5e771" PROJ="Rel. 5.2.0, September 15th, 2018" LIBXML="2.9.4" LIBJSON="0.12.1" LIBPROTOBUF="1.3.1" WAGYU="0.5.0 (Internal)" TOPOLOGY
+(1 row)
+```
