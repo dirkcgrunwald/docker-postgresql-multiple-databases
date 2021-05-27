@@ -3,11 +3,13 @@
 # Test named database for GIS sections
 #
 
-while IFS= read -r dbuser; do
+export dbuser=$1
+export dbpasswd=$2
   echo "dbuser is $dbuser"
-  read -r PGPASSWORD
-  echo "dbpasswd is $PGPASSWORD"
-  psql postgresql://$dbuser:$PGPASSWORD@localhost/$dbuser <<EOF
+  echo "dbpasswd is $dbpasswd"
+  psql postgresql://$dbuser:$dbpasswd@localhost/$dbuser <<EOF
+    \dn.
+    \dt.
     SELECT postgis_full_version();
     DROP TABLE IF EXISTS states;
     CREATE TABLE states
@@ -16,4 +18,3 @@ while IFS= read -r dbuser; do
 	  geom geography
 	);
 EOF
-done < users/users.txt

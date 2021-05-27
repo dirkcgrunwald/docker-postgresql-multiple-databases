@@ -80,7 +80,7 @@ myapp-postgresql_1  | GRANT
 
 ## Test it out
 
-The script `./test-db-for-gis.sh` will loop through each user and question run postgres_version() to
+The script `./users/all-users-test.sh` will loop through each user and question run postgres_version() to
 insure that the postgis extensions are installed. It will also create a table that uses a `GEOM`
 type which would fail if postgis is not setup correctly.
 
