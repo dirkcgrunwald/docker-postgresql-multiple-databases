@@ -1,0 +1,15 @@
+version: "3.9"
+services:
+  myapp-postgresql:
+      image: postgres:latest
+      volumes:
+          - type: bind
+            source: ./script
+            target: /docker-entrypoint-initdb.d
+          - type: bind
+            source: ./dbdata
+            target: /var/lib/postgresql/data
+      environment:
+          - POSTGRES_MULTIPLE_DATABASES=db1,db2
+          - POSTGRES_USER=myapp
+          - POSTGRES_PASSWORD=changeme
