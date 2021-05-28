@@ -3,6 +3,12 @@
 # Test named database for GIS sections
 #
 
+echo "Databases are..."
+psql postgresql://myapp:changeme@localhost <<EOF
+ \list
+EOF
+
+
 while IFS= read -r dbuser; do
   echo "dbuser is $dbuser"
   read -r dbpasswd

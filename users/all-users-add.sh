@@ -9,3 +9,8 @@ while IFS= read -r dbuser; do
   echo "dbpasswd is $dbpasswd"
   ./single-user-add.sh $dbuser $dbpasswd
 done < users.txt
+
+echo "Databases are..."
+psql postgresql://myapp:changeme@localhost <<EOF
+ \list
+EOF

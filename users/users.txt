@@ -1,4 +1,4 @@
-db1
-db1passwd
-db2
-someother
+alice
+alicePassword
+bob
+bobPassword

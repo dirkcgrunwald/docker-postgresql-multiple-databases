@@ -1,12 +1,10 @@
 myapp-postgresql:
     image: postgis/postgis:latest
     volumes:
-        - ./script:/docker-entrypoint-initdb.d
         - ./users:/opt-users
         - ./dbdata:/var/lib/postgresql/data
     ports:
         - "5432:5432"
     environment:
-        - POSTGRES_MULTIPLE_DATABASES=db1,db2
         - POSTGRES_USER=myapp
         - POSTGRES_PASSWORD=changeme

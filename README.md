@@ -25,57 +25,37 @@ passwd2
 
 * Run `docker-compose up`
 
-This should create two database with output similar to:
+This should create the default databases (and one called `myapp` with the configuration as is).
+
+Then, run `users/all-users-add.sh` and it will add databases for individual users.
+You can run that multiple times (e.g. if you decide to add a new user).
+
+The resulting set of databases can be listed by connecting and using `\list`:
+
+
 ```
-myapp-postgresql_1  | /usr/local/bin/docker-entrypoint.sh: running /docker-entrypoint-initdb.d/create-multiple-postgres-databases.sh
-myapp-postgresql_1  | dbuser is db1
-myapp-postgresql_1  | dbpasswd is db1passwd
-myapp-postgresql_1  |   Creating user and database 'db1'
-myapp-postgresql_1  | CREATE ROLE
-myapp-postgresql_1  | CREATE DATABASE
-myapp-postgresql_1  | GRANT
-myapp-postgresql_1  | CREATE EXTENSION
-myapp-postgresql_1  | CREATE EXTENSION
-myapp-postgresql_1  |  List of schemas
-myapp-postgresql_1  |    Name   | Owner 
-myapp-postgresql_1  | ----------+-------
-myapp-postgresql_1  |  public   | myapp
-myapp-postgresql_1  |  topology | myapp
-myapp-postgresql_1  | (2 rows)
-myapp-postgresql_1  | 
-myapp-postgresql_1  |              List of relations
-myapp-postgresql_1  |   Schema  |      Name       | Type  | Owner 
-myapp-postgresql_1  | ----------+-----------------+-------+-------
-myapp-postgresql_1  |  public   | spatial_ref_sys | table | myapp
-myapp-postgresql_1  |  topology | layer           | table | myapp
-myapp-postgresql_1  |  topology | topology        | table | myapp
-myapp-postgresql_1  | (3 rows)
-myapp-postgresql_1  | 
-myapp-postgresql_1  | GRANT
-myapp-postgresql_1  | dbuser is db2
-myapp-postgresql_1  | dbpasswd is someother
-myapp-postgresql_1  |   Creating user and database 'db2'
-myapp-postgresql_1  | CREATE ROLE
-myapp-postgresql_1  | CREATE DATABASE
-myapp-postgresql_1  | GRANT
-myapp-postgresql_1  | CREATE EXTENSION
-myapp-postgresql_1  | CREATE EXTENSION
-myapp-postgresql_1  |  List of schemas
-myapp-postgresql_1  |    Name   | Owner 
-myapp-postgresql_1  | ----------+-------
-myapp-postgresql_1  |  public   | myapp
-myapp-postgresql_1  |  topology | myapp
-myapp-postgresql_1  | (2 rows)
-myapp-postgresql_1  | 
-myapp-postgresql_1  |              List of relations
-myapp-postgresql_1  |   Schema  |      Name       | Type  | Owner 
-myapp-postgresql_1  | ----------+-----------------+-------+-------
-myapp-postgresql_1  |  public   | spatial_ref_sys | table | myapp
-myapp-postgresql_1  |  topology | layer           | table | myapp
-myapp-postgresql_1  |  topology | topology        | table | myapp
-myapp-postgresql_1  | (3 rows)
-myapp-postgresql_1  | 
-myapp-postgresql_1  | GRANT
+$ psql postgresql://myapp:changeme@localhost
+
+myapp=# \list
+                                 List of databases
+       Name       | Owner | Encoding |  Collate   |   Ctype    | Access privileges
+------------------+-------+----------+------------+------------+-------------------
+ alice            | myapp | UTF8     | en_US.utf8 | en_US.utf8 | =Tc/myapp        +
+                  |       |          |            |            | myapp=CTc/myapp  +
+                  |       |          |            |            | db1=CTc/myapp
+ bob              | myapp | UTF8     | en_US.utf8 | en_US.utf8 | =Tc/myapp        +
+                  |       |          |            |            | myapp=CTc/myapp  +
+                  |       |          |            |            | db2=CTc/myapp
+ myapp            | myapp | UTF8     | en_US.utf8 | en_US.utf8 |
+ postgres         | myapp | UTF8     | en_US.utf8 | en_US.utf8 |
+ template0        | myapp | UTF8     | en_US.utf8 | en_US.utf8 | =c/myapp         +
+                  |       |          |            |            | myapp=CTc/myapp
+ template1        | myapp | UTF8     | en_US.utf8 | en_US.utf8 | =c/myapp         +
+                  |       |          |            |            | myapp=CTc/myapp
+ template_postgis | myapp | UTF8     | en_US.utf8 | en_US.utf8 |
+(7 rows)
+
+myapp=# \q
 ```
 
 ## Test it out
@@ -85,18 +65,78 @@ insure that the postgis extensions are installed. It will also create a table th
 type which would fail if postgis is not setup correctly.
 
 ```
-beast-18$ ./test-db-for-gis.sh
-dbuser is db1
-dbpasswd is db1passwd
+beast-61$ ./all-users-test.sh
+Databases are...
+                                 List of databases
+       Name       | Owner | Encoding |  Collate   |   Ctype    | Access privileges
+------------------+-------+----------+------------+------------+-------------------
+ alice            | myapp | UTF8     | en_US.utf8 | en_US.utf8 | =Tc/myapp        +
+                  |       |          |            |            | myapp=CTc/myapp  +
+                  |       |          |            |            | alice=CTc/myapp
+ bob              | myapp | UTF8     | en_US.utf8 | en_US.utf8 | =Tc/myapp        +
+                  |       |          |            |            | myapp=CTc/myapp  +
+                  |       |          |            |            | bob=CTc/myapp
+ myapp            | myapp | UTF8     | en_US.utf8 | en_US.utf8 |
+ postgres         | myapp | UTF8     | en_US.utf8 | en_US.utf8 |
+ template0        | myapp | UTF8     | en_US.utf8 | en_US.utf8 | =c/myapp         +
+                  |       |          |            |            | myapp=CTc/myapp
+ template1        | myapp | UTF8     | en_US.utf8 | en_US.utf8 | =c/myapp         +
+                  |       |          |            |            | myapp=CTc/myapp
+ template_postgis | myapp | UTF8     | en_US.utf8 | en_US.utf8 |
+(7 rows)
+
+dbuser is alice
+dbpasswd is alicePassword
+dbuser is alice
+dbpasswd is alicePassword
+ List of schemas
+   Name   | Owner
+----------+-------
+ public   | myapp
+ topology | myapp
+(2 rows)
+
+             List of relations
+  Schema  |      Name       | Type  | Owner
+----------+-----------------+-------+-------
+ public   | spatial_ref_sys | table | myapp
+ public   | states          | table | alice
+ topology | layer           | table | myapp
+ topology | topology        | table | myapp
+(4 rows)
+
                                                                                               postgis_full_version
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  POSTGIS="3.1.1 aaf4c79" [EXTENSION] PGSQL="130" GEOS="3.7.1-CAPI-1.11.1 27a5e771" PROJ="Rel. 5.2.0, September 15th, 2018" LIBXML="2.9.4" LIBJSON="0.12.1" LIBPROTOBUF="1.3.1" WAGYU="0.5.0 (Internal)" TOPOLOGY
 (1 row)
 
-dbuser is db2
-dbpasswd is someother
+DROP TABLE
+CREATE TABLE
+dbuser is bob
+dbpasswd is bobPassword
+dbuser is bob
+dbpasswd is bobPassword
+ List of schemas
+   Name   | Owner
+----------+-------
+ public   | myapp
+ topology | myapp
+(2 rows)
+
+             List of relations
+  Schema  |      Name       | Type  | Owner
+----------+-----------------+-------+-------
+ public   | spatial_ref_sys | table | myapp
+ public   | states          | table | bob
+ topology | layer           | table | myapp
+ topology | topology        | table | myapp
+(4 rows)
+
                                                                                               postgis_full_version
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  POSTGIS="3.1.1 aaf4c79" [EXTENSION] PGSQL="130" GEOS="3.7.1-CAPI-1.11.1 27a5e771" PROJ="Rel. 5.2.0, September 15th, 2018" LIBXML="2.9.4" LIBJSON="0.12.1" LIBPROTOBUF="1.3.1" WAGYU="0.5.0 (Internal)" TOPOLOGY
 (1 row)
+
+DROP TABLE
+CREATE TABLE
 ```
